@@ -1,0 +1,8 @@
+requests>=2.25.0
+beautifulsoup4>=4.9.3t  
+python-dotenv
+pylint
+flake8
+pytz
+urllib3
+unidecode
