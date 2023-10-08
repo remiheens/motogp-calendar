@@ -31,10 +31,31 @@ ecal.setParams({"showDraft": "true"})
 cal = ecal.get("/apiv2/calendar/")
 print(f"{cal}")
 
+events_already_in_cal = []
 # check if exist
 ecal.setParams({"calendarId": CALENDAR_ID, "showPastEvents": "1"})
-events_already_in_cal = ecal.get("/apiv2/event")
+per_page = 100
+page = 1
+while True:
+    ecal.setParams({"calendarId": CALENDAR_ID, "showPastEvents": "1", "page": page, "limit": per_page})
+    e = ecal.get("/apiv2/event")
 
+    if len(e) > 0 and "data" in e:
+        events_already_in_cal.extend(e['data'])  # Ajoutez les résultats à la liste
+        page += 1  # Incrémente le numéro de page pour la prochaine itération
+    else:
+        break
+
+print(f"{events_already_in_cal}")
+
+def get_emoji_by_type(type):
+    if type == "RACE":
+        return '🏁'
+    elif type == "QUALIFYING":
+        return '⏱️'
+    elif type == "PRACTICE":
+        return '🏍️'
+    return ''
 
 response = requests.get(domain+"/fr/calendar")
 if response.status_code == 200:
@@ -54,7 +75,7 @@ if response.status_code == 200:
                 if not isinstance(child, str):
                     child.extract()
                     
-            event_name = unidecode(event_name.get_text(strip=True))
+            event_name = unidecode(event_name.get_text(strip=True)).replace('MotoGP(tm)','')
             
             print(f"############")
             print(f"Nom du GP : {event_name}")
@@ -76,13 +97,14 @@ if response.status_code == 200:
                     if end == start:
                         end = start + timedelta(minutes=30)
 
-                    if "data" in events_already_in_cal:
-                        for ev in events_already_in_cal["data"]:
-                            if ev["reference"].startswith(broadcast['id']):
-                                ecal.delete("/apiv2/event/" + ev['id'])
+                    previous_event_id = ""
+
+                    for ev in events_already_in_cal:
+                        if ev["reference"].startswith(broadcast['id']):
+                            previous_event_id = ev['id']
 
                     print(f"ID : {broadcast['id']}")
-                    print(f"Name : {broadcast['name']}")
+                    print(f"Name : {get_emoji_by_type(broadcast['kind'])} {broadcast['name']}")
                     print(f"Type : {broadcast['kind']}")
                     print(f"Start : {broadcast['date_start']}")
                     print(f"StartDate : {start.date()}")
@@ -93,7 +115,7 @@ if response.status_code == 200:
                     print("-------------------------")
 
                     ecal.setJson({
-                        "name": event_name + " - " + broadcast['name'],
+                        "name": get_emoji_by_type(broadcast['kind']) + "  " + event_name + " - " + broadcast['name'],
                         "location": event_name,
                         "startDate": start.strftime("%Y-%m-%d"),
                         "startTime": start.strftime("%H:%M"),
@@ -103,6 +125,9 @@ if response.status_code == 200:
                         "calendarId": CALENDAR_ID,
                         "reference": broadcast['id']
                     })
-                    e = ecal.post("/apiv2/event")
+                    if len(previous_event_id) > 0:
+                        e = ecal.put("/apiv2/event/"+previous_event_id)
+                    else:
+                        e = ecal.post("/apiv2/event")
                     
                     print(f"{e}")

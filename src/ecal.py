@@ -58,7 +58,6 @@ class EcalClient:
         return resp.json()
 
     def post(self, url):
-        
         qs = self.getQuery()
         if len(qs) > 0:
             url += "?"+qs
@@ -79,11 +78,32 @@ class EcalClient:
         print(f"{resp.headers}")
         return resp.json()
             
+    def put(self, url):
+        qs = self.getQuery()
+        if len(qs) > 0:
+            url += "?"+qs
+        print(f"URL : {self._api_domain+url}")
+        print(f"JSON : {self._json}")
+
+        resp = urllib3.request(
+            "PUT",
+            self._api_domain+url,
+            headers={"Content-Type": "application/json", "Accept":"*/*", "User-Agent":"remiheens-ecal-client/0.0.0"},
+            body=self._json
+        )
+        if resp.status >= 400:
+            raise Exception(f"HTTP error {resp.status}: {resp.data} \n URL = {url} \n data = {self._json} \n params = {qs} \n headers = {resp.headers}")
+
+        self._params = {}
+        self._json = ""
+        print(f"{resp.headers}")
+        return resp.json()
+            
     def getSign(self):
         self.sortParams()
         s = ""
         for k, v in self._params.items():
-            s += k+""+v
+            s += k+""+str(v)
 
         text = self._apiSecret+""+s
         if len(self._json) > 0:
