@@ -123,7 +123,9 @@ if response.status_code == 200:
                         "endTime": end.strftime("%H:%M"),
                         "timezone": "Europe/Paris",
                         "calendarId": CALENDAR_ID,
-                        "reference": broadcast['id']
+                        "reference": broadcast['id'],
+                        "alert": "30M",
+                        "alert2": "5M"
                     })
                     if len(previous_event_id) > 0:
                         e = ecal.put("/apiv2/event/"+previous_event_id)
