@@ -14,6 +14,7 @@ import os
 from ecal import EcalClient
 from datetime import datetime, timedelta
 from unidecode import unidecode
+import pytz
 
 
 load_dotenv()
@@ -24,6 +25,8 @@ domain = "https://www.motogp.com"
 ECAL_KEY = os.getenv("ECAL_API_KEY")
 ECAL_SECRET = os.getenv("ECAL_API_SECRET")
 CALENDAR_ID = os.getenv('ECAL_ID')
+nouveau_fuseau_horaire = pytz.timezone('Europe/Paris')
+
 ecal = EcalClient()
 ecal.setApiKey(ECAL_KEY)
 ecal.setApiSecret(ECAL_SECRET)
@@ -46,7 +49,7 @@ while True:
     else:
         break
 
-print(f"{events_already_in_cal}")
+#print(f"{events_already_in_cal}")
 
 def get_emoji_by_type(type):
     if type == "RACE":
@@ -86,13 +89,15 @@ if response.status_code == 200:
 
             responseDetailled = requests.get("https://api.motogp.pulselive.com/motogp/v1/events/"+event['href'].split('/')[-1])
             data_json = json.loads(responseDetailled.text)
-            
+            timezone_origine = pytz.timezone(data_json['time_zone'])
             for broadcast in data_json['broadcasts']:
                 if (broadcast['category']['acronym'] == "MGP" 
                     and broadcast['kind'] in ("RACE", "QUALIFYING", "PRACTICE")):
 
-                    start = datetime.strptime(broadcast['date_start'], "%Y-%m-%dT%H:%M:%S%z")
-                    end = datetime.strptime(broadcast['date_end'], "%Y-%m-%dT%H:%M:%S%z")
+                    print(f"{broadcast}")
+                    start = datetime.strptime(broadcast['date_start'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=timezone_origine).astimezone(nouveau_fuseau_horaire)
+                    end = datetime.strptime(broadcast['date_end'], "%Y-%m-%dT%H:%M:%S%z").replace(tzinfo=timezone_origine).astimezone(nouveau_fuseau_horaire)
+
 
                     if end == start:
                         end = start + timedelta(minutes=30)
